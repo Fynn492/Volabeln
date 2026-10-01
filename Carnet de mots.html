@@ -1,0 +1,830 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Carnet de mots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column like a school notebook page. Cards are Seyès-ruled sheets with a red margin line; everything else sits quietly on a cool grey desk. */
+:root {
+  --bg: #edf0f7;
+  --card: #fbfcff;
+  --ink: #161d3a;
+  --muted: #566082;
+  --accent: #2338c9;
+  --accent-ink: #ffffff;
+  --rule: #e1e6f5;
+  --rule-strong: #c5cdee;
+  --margin: #d4456b;
+  --ok: #1b7650;
+  --bad: #b3263e;
+  --soft: #e2e7f6;
+  --f-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Spline Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1220; --card: #171b2e; --ink: #e8ebfa; --muted: #9aa2c6; --accent: #8d9cff; --accent-ink: #0f1220;
+    --rule: #1f2543; --rule-strong: #2c3459; --margin: #e3688a; --ok: #58c995; --bad: #ff7d92; --soft: #1e2340;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1220; --card: #171b2e; --ink: #e8ebfa; --muted: #9aa2c6; --accent: #8d9cff; --accent-ink: #0f1220;
+  --rule: #1f2543; --rule-strong: #2c3459; --margin: #e3688a; --ok: #58c995; --bad: #ff7d92; --soft: #1e2340;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 16px/1.5 var(--f-display);
+  padding-inline: 16px; padding-block: 20px 40px;
+}
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 30px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 13px; font-weight: 500; font-family: var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.sub { color: var(--muted); font-size: 15px; margin-top: 4px; }
+.mono { font-family: var(--f-mono); }
+
+/* ruled sheet */
+.sheet {
+  position: relative;
+  background-color: var(--card);
+  background-image:
+    linear-gradient(var(--rule-strong) 1px, transparent 1px),
+    linear-gradient(var(--rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 100% 32px, 100% 8px, 64px 100%;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+}
+.sheet::before {
+  content: ""; position: absolute; inset-block: 0; inset-inline-start: 34px; width: 2px;
+  background: var(--margin); opacity: 0.75;
+}
+.sheet > * { position: relative; }
+.pad { padding: 20px 20px 20px 54px; }
+
+/* today */
+.today { display: flex; flex-direction: column; gap: 16px; }
+.counts { display: flex; gap: 28px; flex-wrap: wrap; }
+.count { display: flex; flex-direction: column; }
+.count b { font-size: 44px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.count span { font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-top: 6px; }
+.btn-main {
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 4px;
+  padding: 14px 18px; font-weight: 600; font-size: 17px; width: 100%;
+}
+.btn-main:hover { filter: brightness(1.08); }
+.btn-main[disabled] { background: var(--soft); color: var(--muted); cursor: default; filter: none; }
+.note { color: var(--muted); font-size: 14px; }
+
+/* panels on the desk */
+.panel { display: flex; flex-direction: column; gap: 14px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat b { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); }
+
+.boxes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; align-items: end; }
+.box { display: flex; flex-direction: column; align-items: stretch; gap: 6px; text-align: center; }
+.box .n { font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.box .bar { height: 84px; display: flex; align-items: flex-end; background: var(--soft); border-radius: 3px; overflow: hidden; }
+.box .bar i { display: block; width: 100%; background: var(--accent); min-height: 0; transition: height .3s; }
+.box:last-child .bar i { background: var(--ok); }
+.box .l { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.box .l b { display: block; color: var(--ink); font-weight: 600; font-size: 13px; }
+
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--rule-strong); border-radius: 4px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: 10px 6px; font-size: 14px; border-inline-end: 1px solid var(--rule-strong); }
+.seg button:last-child { border-inline-end: 0; }
+.seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--rule-strong); border-radius: 4px; background: var(--card); }
+.stepper button { border: 0; background: transparent; width: 42px; height: 40px; font-size: 20px; line-height: 1; }
+.stepper output { min-width: 40px; text-align: center; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--rule-strong); background: var(--card); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.link { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; }
+.danger { color: var(--bad); }
+.sync { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+
+/* session */
+.sessionbar { display: flex; align-items: center; gap: 14px; }
+.prog { flex: 1; height: 6px; background: var(--soft); border-radius: 99px; overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--accent); transition: width .25s; }
+.sessionbar .count-s { font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card {
+  display: block; width: 100%; text-align: left; color: var(--ink);
+  min-height: 320px; padding: 22px 20px 22px 54px; cursor: pointer;
+}
+.card.done { cursor: default; }
+.card-in { display: flex; flex-direction: column; gap: 14px; min-height: 274px; }
+.meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.tag { border: 1px solid var(--rule-strong); border-radius: 3px; padding: 1px 6px; background: var(--card); }
+.word { font-size: clamp(30px, 8vw, 42px); line-height: 1.15; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; overflow-wrap: anywhere; }
+.answer { font-size: clamp(24px, 6.4vw, 32px); line-height: 1.2; font-weight: 600; color: var(--accent); text-wrap: balance; overflow-wrap: anywhere; border-top: 2px solid var(--margin); padding-top: 14px; margin-top: auto; }
+.hint { margin-top: auto; font-size: 14px; color: var(--muted); }
+.grades { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.grade { border-radius: 4px; padding: 12px 6px; font-weight: 600; background: var(--card); border: 2px solid var(--rule-strong); display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.grade small { font-family: var(--f-mono); font-weight: 400; font-size: 11px; color: var(--muted); }
+.grade.again { border-color: var(--bad); color: var(--bad); }
+.grade.good { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.grade.good small { color: var(--accent-ink); opacity: .8; }
+.grade.easy { border-color: var(--ok); color: var(--ok); }
+.grade:hover { filter: brightness(1.06); }
+.summary-nums { display: flex; gap: 28px; flex-wrap: wrap; }
+@media (prefers-reduced-motion: no-preference) {
+  .card-in { animation: rise .18s ease-out; }
+  @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+@media (max-width: 420px) {
+  .pad, .card { padding-inline-end: 14px; }
+  .count b { font-size: 38px; }
+}
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Karten: [Thema, Französisch, Deutsch, Hinweis] ---------- */
+  var CATS = [
+    ["smalltalk", "Smalltalk"], ["alltag", "Alltag"], ["reisen", "Reisen"],
+    ["sport", "Sport"], ["freizeit", "Freizeit"], ["meinung", "Meinung & Gefühle"], ["verben", "Verben"], ["party", "Party & Kennenlernen"]
+  ];
+  var DECK = [
+    ["smalltalk", "Ça roule ?", "Läuft’s? / Alles klar?", "fam."],
+    ["smalltalk", "Quoi de neuf ?", "Was gibt’s Neues?"],
+    ["smalltalk", "Pas mal, et toi ?", "Nicht schlecht, und bei dir?"],
+    ["smalltalk", "Je suis crevé(e)", "Ich bin total erledigt", "fam."],
+    ["smalltalk", "Ce n’est pas terrible", "Das ist nicht so toll"],
+    ["smalltalk", "Ça me dit quelque chose", "Das kommt mir bekannt vor"],
+    ["smalltalk", "Ça ne me dit rien", "Das sagt mir nichts"],
+    ["smalltalk", "Tu rigoles !", "Du machst Witze!", "fam."],
+    ["smalltalk", "Sans blague !", "Echt jetzt? / Im Ernst?"],
+    ["smalltalk", "Ça dépend", "Das kommt darauf an"],
+    ["smalltalk", "Franchement", "Ehrlich gesagt"],
+    ["smalltalk", "Tant mieux", "Umso besser"],
+    ["smalltalk", "Tant pis", "Pech / Dann eben nicht"],
+    ["smalltalk", "Peu importe", "Egal / Spielt keine Rolle"],
+    ["smalltalk", "Je m’en fiche", "Das ist mir egal", "fam."],
+    ["smalltalk", "Ça m’énerve", "Das nervt mich"],
+    ["smalltalk", "Ça fait longtemps !", "Lange nicht gesehen!"],
+    ["smalltalk", "Raconte !", "Erzähl!"],
+    ["smalltalk", "Je suis partant(e)", "Ich bin dabei"],
+    ["smalltalk", "Ça marche !", "Geht klar! / Abgemacht!"],
+    ["smalltalk", "Je te rappelle", "Ich rufe dich zurück"],
+    ["smalltalk", "Désolé(e) du retard", "Entschuldige die Verspätung"],
+    ["smalltalk", "Bon courage !", "Viel Kraft! / Halte durch!"],
+    ["smalltalk", "On se tient au courant", "Wir halten uns auf dem Laufenden"],
+    ["smalltalk", "On se fait un resto ?", "Wollen wir essen gehen?", "fam."],
+    ["smalltalk", "À tout à l’heure", "Bis gleich / Bis später"],
+    ["smalltalk", "Je n’en reviens pas", "Ich kann es nicht fassen"],
+    ["smalltalk", "C’est bon à savoir", "Gut zu wissen"],
+    ["smalltalk", "Ça m’arrange", "Das passt mir gut"],
+    ["smalltalk", "Ça ne me dérange pas", "Das stört mich nicht"],
+
+    ["alltag", "le boulot", "die Arbeit / der Job", "fam."],
+    ["alltag", "bosser", "arbeiten / schuften", "fam."],
+    ["alltag", "la bagnole", "die Karre / das Auto", "fam."],
+    ["alltag", "le truc", "das Ding / die Sache", "fam."],
+    ["alltag", "les courses (f. pl.)", "die Einkäufe"],
+    ["alltag", "faire la queue", "anstehen"],
+    ["alltag", "la monnaie", "das Wechselgeld / Kleingeld"],
+    ["alltag", "payer en espèces", "bar zahlen"],
+    ["alltag", "payer sans contact", "kontaktlos zahlen"],
+    ["alltag", "un colis", "ein Paket"],
+    ["alltag", "le loyer", "die Miete"],
+    ["alltag", "déménager", "umziehen"],
+    ["alltag", "une panne", "eine Panne / ein Ausfall"],
+    ["alltag", "prendre rendez-vous", "einen Termin vereinbaren"],
+    ["alltag", "une démarche", "ein Behördengang / ein Schritt"],
+    ["alltag", "la mairie", "das Rathaus"],
+    ["alltag", "une ordonnance", "ein ärztliches Rezept"],
+    ["alltag", "un rhume", "eine Erkältung"],
+    ["alltag", "avoir mal à la tête", "Kopfschmerzen haben"],
+    ["alltag", "ranger", "aufräumen"],
+    ["alltag", "faire le ménage", "putzen / den Haushalt machen"],
+    ["alltag", "faire la lessive", "Wäsche waschen"],
+    ["alltag", "la poubelle", "der Mülleimer"],
+    ["alltag", "le frigo", "der Kühlschrank", "fam."],
+    ["alltag", "les restes (m. pl.)", "die Reste"],
+    ["alltag", "l’addition (f.)", "die Rechnung (im Restaurant)"],
+    ["alltag", "le pourboire", "das Trinkgeld"],
+    ["alltag", "le plat du jour", "das Tagesgericht"],
+    ["alltag", "à emporter", "zum Mitnehmen"],
+    ["alltag", "sur place", "zum Hieressen / vor Ort"],
+    ["alltag", "un abonnement", "ein Abonnement"],
+    ["alltag", "résilier", "kündigen (einen Vertrag)"],
+    ["alltag", "le justificatif de domicile", "der Wohnsitznachweis"],
+    ["alltag", "une réclamation", "eine Beschwerde / Reklamation"],
+    ["alltag", "se faire rembourser", "sich etwas erstatten lassen"],
+
+    ["reisen", "un aller simple", "eine einfache Fahrt"],
+    ["reisen", "un aller-retour", "Hin- und Rückfahrt"],
+    ["reisen", "le quai", "der Bahnsteig"],
+    ["reisen", "la correspondance", "der Anschluss / das Umsteigen"],
+    ["reisen", "un retard", "eine Verspätung"],
+    ["reisen", "composter un billet", "ein Ticket entwerten"],
+    ["reisen", "le covoiturage", "die Fahrgemeinschaft"],
+    ["reisen", "une auberge de jeunesse", "eine Jugendherberge"],
+    ["reisen", "un gîte", "eine Ferienunterkunft auf dem Land"],
+    ["reisen", "réserver", "buchen / reservieren"],
+    ["reisen", "la valise", "der Koffer"],
+    ["reisen", "la douane", "der Zoll"],
+    ["reisen", "un embouteillage", "ein Stau"],
+    ["reisen", "un bouchon", "ein Stau", "fam."],
+    ["reisen", "le péage", "die Mautstelle"],
+    ["reisen", "faire le plein", "volltanken"],
+    ["reisen", "se perdre", "sich verlaufen / sich verfahren"],
+    ["reisen", "tout droit", "geradeaus"],
+    ["reisen", "un détour", "ein Umweg"],
+    ["reisen", "le sentier", "der Wanderpfad"],
+    ["reisen", "un point de vue", "ein Aussichtspunkt / ein Standpunkt"],
+    ["reisen", "le dépaysement", "das Gefühl, in einer anderen Welt zu sein"],
+    ["reisen", "un séjour", "ein Aufenthalt"],
+    ["reisen", "l’hébergement (m.)", "die Unterkunft"],
+    ["reisen", "le tarif", "der Preis / Tarif"],
+    ["reisen", "une grève", "ein Streik"],
+    ["reisen", "en panne", "kaputt / liegengeblieben"],
+    ["reisen", "C’est complet", "Es ist ausgebucht / voll"],
+
+    ["sport", "s’entraîner", "trainieren"],
+    ["sport", "un entraînement", "ein Training"],
+    ["sport", "la musculation", "das Krafttraining"],
+    ["sport", "le footing", "das Joggen"],
+    ["sport", "l’échauffement (m.)", "das Aufwärmen"],
+    ["sport", "les étirements (m. pl.)", "das Dehnen"],
+    ["sport", "une courbature", "ein Muskelkater"],
+    ["sport", "une blessure", "eine Verletzung"],
+    ["sport", "se fouler la cheville", "sich den Knöchel verstauchen"],
+    ["sport", "un claquage", "eine Muskelzerrung"],
+    ["sport", "la natation", "das Schwimmen"],
+    ["sport", "le crawl", "das Kraulen"],
+    ["sport", "le dénivelé", "die Höhenmeter"],
+    ["sport", "une côte", "ein Anstieg / eine Steigung"],
+    ["sport", "la descente", "die Abfahrt"],
+    ["sport", "un dossard", "eine Startnummer"],
+    ["sport", "la ligne d’arrivée", "die Ziellinie"],
+    ["sport", "battre son record", "seine Bestzeit schlagen"],
+    ["sport", "l’allure (f.)", "das Tempo"],
+    ["sport", "l’endurance (f.)", "die Ausdauer"],
+    ["sport", "la récupération", "die Erholung"],
+    ["sport", "une séance", "eine Trainingseinheit"],
+    ["sport", "la salle de sport", "das Fitnessstudio"],
+    ["sport", "un match nul", "ein Unentschieden"],
+    ["sport", "un supporter", "ein Fan"],
+    ["sport", "la combinaison", "der Neoprenanzug"],
+    ["sport", "une randonnée", "eine Wanderung"],
+    ["sport", "le ski de fond", "der Langlauf"],
+    ["sport", "les raquettes (f. pl.)", "die Schneeschuhe"],
+    ["sport", "être en forme", "fit sein"],
+    ["sport", "être à bout de souffle", "außer Atem sein"],
+    ["sport", "avoir un coup de barre", "einen Durchhänger haben", "fam."],
+    ["sport", "un classement", "eine Rangliste / Platzierung"],
+    ["sport", "la mi-temps", "die Halbzeit"],
+    ["sport", "marquer un but", "ein Tor schießen"],
+
+    ["freizeit", "se détendre", "sich entspannen"],
+    ["freizeit", "sortir", "ausgehen"],
+    ["freizeit", "boire un verre", "etwas trinken gehen"],
+    ["freizeit", "un apéro", "ein Aperitif / Umtrunk", "fam."],
+    ["freizeit", "une soirée", "ein Abend / eine Feier"],
+    ["freizeit", "faire la fête", "feiern"],
+    ["freizeit", "traîner", "herumhängen / bummeln"],
+    ["freizeit", "glander", "faulenzen / abhängen", "fam."],
+    ["freizeit", "bouquiner", "schmökern / lesen", "fam."],
+    ["freizeit", "une série", "eine Serie"],
+    ["freizeit", "les jeux de société", "die Brettspiele"],
+    ["freizeit", "une exposition", "eine Ausstellung"],
+    ["freizeit", "un passe-temps", "ein Hobby / Zeitvertreib"],
+    ["freizeit", "bricoler", "basteln / werkeln"],
+    ["freizeit", "se balader", "spazieren gehen / bummeln", "fam."],
+    ["freizeit", "rater", "verpassen"],
+    ["freizeit", "s’ennuyer", "sich langweilen"],
+    ["freizeit", "un week-end prolongé", "ein langes Wochenende"],
+    ["freizeit", "un feu d’artifice", "ein Feuerwerk"],
+    ["freizeit", "faire la grasse matinée", "ausschlafen"],
+    ["freizeit", "un coup de fil", "ein Anruf", "fam."],
+    ["freizeit", "un potager", "ein Gemüsegarten"],
+    ["freizeit", "cueillir", "pflücken / sammeln"],
+
+    ["meinung", "à mon avis", "meiner Meinung nach"],
+    ["meinung", "Ça m’a plu", "Das hat mir gefallen"],
+    ["meinung", "Ça m’a déçu(e)", "Das hat mich enttäuscht"],
+    ["meinung", "je suis ravi(e)", "ich freue mich sehr"],
+    ["meinung", "Ça m’a vexé(e)", "Das hat mich gekränkt"],
+    ["meinung", "avoir le trac", "Lampenfieber haben"],
+    ["meinung", "avoir la flemme", "keine Lust haben (zu faul sein)", "fam."],
+    ["meinung", "J’en ai marre", "Ich habe die Nase voll", "fam."],
+    ["meinung", "Ça me stresse", "Das stresst mich"],
+    ["meinung", "soulagé(e)", "erleichtert"],
+    ["meinung", "fier / fière", "stolz"],
+    ["meinung", "jaloux / jalouse", "eifersüchtig / neidisch"],
+    ["meinung", "gêné(e)", "verlegen / unangenehm berührt"],
+    ["meinung", "étonnant", "erstaunlich"],
+    ["meinung", "se plaindre", "sich beschweren"],
+    ["meinung", "il vaut mieux", "es ist besser"],
+    ["meinung", "Ça vaut le coup", "Das lohnt sich", "fam."],
+    ["meinung", "C’est nul", "Das ist mies", "fam."],
+    ["meinung", "C’est génial", "Das ist großartig"],
+    ["meinung", "carrément", "total / voll"],
+    ["meinung", "en vouloir à quelqu’un", "jemandem böse sein"],
+    ["meinung", "se mettre en colère", "wütend werden"],
+    ["meinung", "être sur les nerfs", "angespannt sein"],
+    ["meinung", "Je suis d’accord", "Ich bin einverstanden"],
+    ["meinung", "Je ne suis pas convaincu(e)", "Ich bin nicht überzeugt"],
+    ["meinung", "au fond", "im Grunde"],
+    ["meinung", "du coup", "also / deshalb", "fam."],
+    ["meinung", "en fait", "eigentlich / tatsächlich"],
+    ["meinung", "bref", "kurz gesagt"],
+
+    ["verben", "s’habituer à", "sich gewöhnen an"],
+    ["verben", "se souvenir de", "sich erinnern an", "irr."],
+    ["verben", "se rappeler", "sich an etwas erinnern"],
+    ["verben", "oublier", "vergessen"],
+    ["verben", "manquer", "fehlen / verpassen"],
+    ["verben", "avoir besoin de", "brauchen"],
+    ["verben", "avoir envie de", "Lust haben auf"],
+    ["verben", "s’occuper de", "sich kümmern um"],
+    ["verben", "se débrouiller", "zurechtkommen / sich durchschlagen"],
+    ["verben", "s’en sortir", "es schaffen / zurechtkommen"],
+    ["verben", "essayer de", "versuchen"],
+    ["verben", "réussir à", "es schaffen zu / gelingen"],
+    ["verben", "hésiter", "zögern"],
+    ["verben", "décider de", "beschließen"],
+    ["verben", "se décider", "sich entscheiden"],
+    ["verben", "choisir", "wählen / aussuchen"],
+    ["verben", "proposer", "vorschlagen"],
+    ["verben", "conseiller", "raten / empfehlen"],
+    ["verben", "recommander", "empfehlen"],
+    ["verben", "prévoir", "vorhaben / vorhersehen", "irr."],
+    ["verben", "penser à", "denken an"],
+    ["verben", "rêver de", "träumen von"],
+    ["verben", "s’attendre à", "rechnen mit / erwarten"],
+    ["verben", "compter sur", "zählen auf"],
+    ["verben", "faire confiance à", "vertrauen"],
+    ["verben", "se méfier de", "misstrauen / sich in Acht nehmen vor"],
+    ["verben", "s’inquiéter", "sich Sorgen machen"],
+    ["verben", "se dépêcher", "sich beeilen"],
+    ["verben", "attendre", "warten (auf)"],
+    ["verben", "patienter", "sich gedulden"],
+    ["verben", "rejoindre", "sich anschließen / treffen", "irr."],
+    ["verben", "se retrouver", "sich treffen"],
+    ["verben", "inviter", "einladen"],
+    ["verben", "prêter", "verleihen"],
+    ["verben", "emprunter", "ausleihen (sich borgen)"],
+    ["verben", "rendre", "zurückgeben"],
+    ["verben", "offrir", "schenken / anbieten", "irr."],
+    ["verben", "partager", "teilen"],
+    ["verben", "envoyer", "schicken", "irr."],
+    ["verben", "recevoir", "erhalten / empfangen", "irr."],
+    ["verben", "répondre", "antworten"],
+    ["verben", "expliquer", "erklären"],
+    ["verben", "comprendre", "verstehen", "irr."],
+    ["verben", "apprendre", "lernen / erfahren", "irr."],
+    ["verben", "retenir", "sich merken / zurückhalten", "irr."],
+    ["verben", "répéter", "wiederholen"],
+    ["verben", "s’excuser", "sich entschuldigen"],
+    ["verben", "remercier", "danken"],
+    ["verben", "féliciter", "gratulieren"],
+    ["verben", "plaisanter", "scherzen"],
+    ["verben", "râler", "meckern", "fam."],
+    ["verben", "gueuler", "brüllen", "fam."],
+    ["verben", "discuter", "sich unterhalten / diskutieren"],
+    ["verben", "bavarder", "plaudern"],
+    ["verben", "raconter", "erzählen"],
+    ["verben", "mentir", "lügen", "irr."],
+    ["verben", "se tromper", "sich irren"],
+    ["verben", "remarquer", "bemerken"],
+    ["verben", "se rendre compte", "sich bewusst werden / merken"],
+    ["verben", "réfléchir", "nachdenken"],
+    ["verben", "supposer", "annehmen / vermuten"],
+    ["verben", "prétendre", "behaupten"],
+    ["verben", "vérifier", "überprüfen"],
+    ["verben", "empêcher", "verhindern"],
+    ["verben", "éviter", "vermeiden"],
+    ["verben", "risquer de", "riskieren / Gefahr laufen"],
+    ["verben", "profiter de", "ausnutzen / genießen"],
+    ["verben", "se coucher", "ins Bett gehen"],
+    ["verben", "se réveiller", "aufwachen"],
+    ["verben", "s’endormir", "einschlafen", "irr."],
+    ["verben", "se reposer", "sich ausruhen"],
+    ["verben", "mettre", "stellen / legen / anziehen", "irr."],
+    ["verben", "enlever", "ausziehen / entfernen"],
+    ["verben", "jeter", "wegwerfen"],
+    ["verben", "garder", "behalten"],
+    ["verben", "chercher", "suchen"],
+    ["verben", "laisser", "lassen / hinterlassen"],
+    ["verben", "emmener", "mitnehmen (eine Person)"],
+    ["verben", "apporter", "mitbringen (eine Sache)"],
+    ["verben", "ramener", "zurückbringen"],
+    ["verben", "déposer", "absetzen / abgeben"],
+    ["verben", "bouger", "sich bewegen"],
+    ["verben", "grimper", "klettern"],
+    ["verben", "glisser", "rutschen"],
+    ["verben", "tomber", "fallen"],
+
+    ["party", "Moi, c’est …", "Ich bin … (Name)"],
+    ["party", "Enchanté(e) !", "Freut mich!"],
+    ["party", "Tu viens d’où ?", "Woher kommst du?"],
+    ["party", "Tu es d’ici ?", "Kommst du von hier?"],
+    ["party", "Je suis allemand(e)", "Ich bin Deutsche(r)"],
+    ["party", "Tu fais quoi dans la vie ?", "Was machst du beruflich?"],
+    ["party", "Je suis en alternance", "Ich mache ein duales Studium"],
+    ["party", "Je fais mes études à …", "Ich studiere in …"],
+    ["party", "Tu connais du monde ici ?", "Kennst du hier Leute?"],
+    ["party", "Comment tu connais … ?", "Woher kennst du …?"],
+    ["party", "On s’est déjà croisés ?", "Sind wir uns schon mal begegnet?"],
+    ["party", "Tu veux boire quelque chose ?", "Möchtest du etwas trinken?"],
+    ["party", "Je t’offre un verre ?", "Darf ich dir ein Getränk ausgeben?"],
+    ["party", "C’est ma tournée", "Die Runde geht auf mich"],
+    ["party", "Santé !", "Prost!"],
+    ["party", "Tchin-tchin !", "Prost!", "fam."],
+    ["party", "On trinque à …", "Wir stoßen auf … an"],
+    ["party", "Je ne bois pas d’alcool", "Ich trinke keinen Alkohol"],
+    ["party", "Je suis un peu pompette", "Ich bin leicht angeheitert", "fam."],
+    ["party", "un pote", "ein Kumpel", "fam."],
+    ["party", "Il y a une super ambiance", "Die Stimmung ist super"],
+    ["party", "La musique est top", "Die Musik ist klasse"],
+    ["party", "On va danser ?", "Wollen wir tanzen?"],
+    ["party", "Il y a trop de monde", "Es sind zu viele Leute da"],
+    ["party", "Il fait trop chaud ici", "Es ist zu heiß hier"],
+    ["party", "On sort prendre l’air ?", "Gehen wir kurz an die frische Luft?"],
+    ["party", "Tu écoutes quoi comme musique ?", "Was für Musik hörst du?"],
+    ["party", "Tu fais du sport ?", "Machst du Sport?"],
+    ["party", "Tu fais quoi pendant ton temps libre ?", "Was machst du in deiner Freizeit?"],
+    ["party", "Tu as des projets pour les vacances ?", "Hast du Pläne für die Ferien?"],
+    ["party", "Ça te dit de … ?", "Hättest du Lust, … ?"],
+    ["party", "Tu parles vite", "Du sprichst schnell"],
+    ["party", "Tu peux parler plus lentement ?", "Kannst du langsamer sprechen?"],
+    ["party", "Je n’ai pas bien saisi", "Ich habe es nicht ganz verstanden"],
+    ["party", "Comment on dit … en français ?", "Wie sagt man … auf Französisch?"],
+    ["party", "Mon français est un peu rouillé", "Mein Französisch ist etwas eingerostet"],
+    ["party", "J’aime bien ton style", "Dein Stil gefällt mir"],
+    ["party", "Tu es drôle", "Du bist lustig"],
+    ["party", "On a les mêmes goûts", "Wir haben denselben Geschmack"],
+    ["party", "On a plein de points communs", "Wir haben viele Gemeinsamkeiten"],
+    ["party", "Ça me fait plaisir de discuter avec toi", "Ich unterhalte mich gern mit dir"],
+    ["party", "draguer", "flirten / anbaggern", "fam."],
+    ["party", "Je suis un peu timide", "Ich bin ein bisschen schüchtern"],
+    ["party", "Tu as Instagram ?", "Hast du Instagram?"],
+    ["party", "On échange nos numéros ?", "Tauschen wir Nummern aus?"],
+    ["party", "On reste en contact ?", "Bleiben wir in Kontakt?"],
+    ["party", "Ce serait sympa de se revoir", "Es wäre schön, uns wiederzusehen"],
+    ["party", "Je reviens tout de suite", "Ich bin gleich zurück"],
+    ["party", "Je vais chercher à boire", "Ich hole mir etwas zu trinken"],
+    ["party", "Je dois y aller", "Ich muss los"],
+    ["party", "Merci pour la soirée", "Danke für den schönen Abend"],
+    ["party", "Ça m’a fait plaisir de te rencontrer", "Es war schön, dich kennenzulernen"],
+    ["party", "Bonne soirée !", "Schönen Abend noch!"],
+    ["party", "Rentre bien !", "Komm gut nach Hause!"],
+    ["party", "À la prochaine !", "Bis zum nächsten Mal!"]
+  ];
+  var CATNAME = {};
+  CATS.forEach(function (c) { CATNAME[c[0]] = c[1]; });
+
+  /* ---------- Zustand ---------- */
+  var LS = "carnet-de-mots-v1";
+  var INTERVALS = [0, 0, 1, 3, 7, 16];
+  var INTERVAL_LABEL = ["", "täglich", "1 Tag", "3 Tage", "7 Tage", "16 Tage"];
+
+  function today() {
+    var d = new Date();
+    return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+  }
+  function fresh() {
+    return {
+      v: 1, updated: 0, items: {},
+      settings: { mode: "both", perDay: 12, cats: CATS.map(function (c) { return c[0]; }) },
+      daily: { day: 0, newDone: 0 },
+      streak: { last: 0, count: 0 }
+    };
+  }
+  function normalize(s) {
+    var f = fresh();
+    if (!s || typeof s !== "object") return f;
+    f.updated = +s.updated || 0;
+    f.items = s.items && typeof s.items === "object" ? s.items : {};
+    var st = s.settings || {};
+    if (["fd", "df", "both"].indexOf(st.mode) >= 0) f.settings.mode = st.mode;
+    if (st.perDay >= 5 && st.perDay <= 25) f.settings.perDay = Math.round(st.perDay);
+    if (Array.isArray(st.cats)) {
+      var ok = st.cats.filter(function (c) { return CATNAME[c]; });
+      if (ok.length) f.settings.cats = ok;
+    }
+    var known = Array.isArray(st.seen) ? st.seen : ["smalltalk", "alltag", "reisen", "sport", "freizeit", "meinung"];
+    CATS.forEach(function (c) {
+      if (known.indexOf(c[0]) < 0 && f.settings.cats.indexOf(c[0]) < 0) f.settings.cats.push(c[0]);
+    });
+    f.settings.seen = CATS.map(function (c) { return c[0]; });
+    if (s.daily) f.daily = { day: +s.daily.day || 0, newDone: +s.daily.newDone || 0 };
+    if (s.streak) f.streak = { last: +s.streak.last || 0, count: +s.streak.count || 0 };
+    return f;
+  }
+  function loadLocal() {
+    try { var raw = localStorage.getItem(LS); if (raw) return normalize(JSON.parse(raw)); } catch (e) {}
+    return null;
+  }
+  var state = loadLocal() || fresh();
+  var ui = { view: "home", sync: "local", confirmReset: false };
+  var session = null;
+  var ref = null, writing = false, pending = false, timer = null;
+
+  function persist() {
+    state.updated = Date.now();
+    try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {}
+    if (ref) { clearTimeout(timer); timer = setTimeout(flush, 700); }
+  }
+  async function flush() {
+    if (!ref) return;
+    if (writing) { pending = true; return; }
+    writing = true; pending = false;
+    try {
+      await ref.set(JSON.parse(JSON.stringify(state)));
+      ui.sync = "cloud";
+    } catch (e) {
+      ui.sync = "error";
+    }
+    writing = false;
+    if (pending) flush(); else if (ui.view === "home") render();
+  }
+  function rollover() {
+    var t = today();
+    if (state.daily.day !== t) state.daily = { day: t, newDone: 0 };
+  }
+
+  /* ---------- Lernlogik ---------- */
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function pools() {
+    var t = today(), cats = {}, mode = state.settings.mode;
+    state.settings.cats.forEach(function (c) { cats[c] = 1; });
+    var due = [], fr = [];
+    DECK.forEach(function (c, i) {
+      if (!cats[c[0]]) return;
+      var kf = "c" + i + "f", kd = "c" + i + "d";
+      var f = state.items[kf], d = state.items[kd];
+      if (mode !== "df") {
+        if (f) { if (f.d <= t) due.push(kf); } else fr.push(kf);
+      }
+      if (mode !== "fd") {
+        if (d) { if (d.d <= t) due.push(kd); }
+        else if (mode === "df" || (f && f.b >= 3)) fr.push(kd);
+      }
+    });
+    return { due: due, fresh: fr };
+  }
+  function counts() {
+    rollover();
+    var p = pools();
+    var allowance = Math.max(0, state.settings.perDay - state.daily.newDone);
+    return { due: p.due.length, fresh: Math.min(p.fresh.length, allowance), p: p, allowance: allowance };
+  }
+  function startSession() {
+    var c = counts();
+    var q = shuffle(c.p.due.slice(0, 40).concat(shuffle(c.p.fresh.slice()).slice(0, c.fresh)));
+    if (!q.length) return;
+    session = { queue: q, total: q.length, solved: 0, right: 0, wrong: 0, revealed: false, seen: {} };
+    ui.view = "session";
+    render();
+  }
+  function grade(g) {
+    if (!session || !session.revealed) return;
+    var key = session.queue.shift();
+    var t = today();
+    var it = state.items[key];
+    if (!it) { it = { b: 1, d: t, n: 0 }; state.items[key] = it; state.daily.newDone++; }
+    it.n = (it.n || 0) + 1;
+    if (g === 0) {
+      it.b = 1; it.d = t;
+      session.wrong++;
+      session.queue.splice(Math.min(session.queue.length, 3), 0, key);
+    } else {
+      var nb = Math.min(5, it.b + (g === 2 ? 2 : 1));
+      it.b = nb; it.d = t + INTERVALS[nb];
+      session.right++; session.solved++;
+    }
+    var s = state.streak;
+    if (s.last !== t) { s.count = s.last === t - 1 ? s.count + 1 : 1; s.last = t; }
+    session.revealed = false;
+    persist();
+    if (!session.queue.length) ui.view = "done";
+    render();
+  }
+  function nextDue() {
+    var t = today(), min = null;
+    Object.keys(state.items).forEach(function (k) {
+      var d = state.items[k].d;
+      if (d > t && (min === null || d < min)) min = d;
+    });
+    return min === null ? null : min - t;
+  }
+
+  /* ---------- Darstellung ---------- */
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+  }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+
+  function homeHTML() {
+    var c = counts();
+    var keys = Object.keys(state.items);
+    var box = [0, 0, 0, 0, 0, 0];
+    keys.forEach(function (k) { box[state.items[k].b]++; });
+    var max = Math.max.apply(null, box.slice(1).concat([1]));
+    var done = c.due + c.fresh === 0;
+    var nd = nextDue();
+    var msg = done
+      ? (keys.length
+          ? "Für heute ist alles geschafft." + (nd ? " Die nächsten Karten kommen in " + plural(nd, "Tag", "Tagen") + "." : "")
+          : "Keine Karten zur Auswahl. Wähle mindestens ein Thema.")
+      : "Eine Runde dauert etwa " + Math.max(2, Math.round((c.due + c.fresh) * 0.35)) + " Minuten.";
+    var m = state.settings.mode;
+    var h = '';
+    h += '<header><h1>Carnet de mots</h1><p class="sub">Alltagsfranzösisch für Fortgeschrittene, ' + DECK.length + ' Karten</p></header>';
+    h += '<section class="sheet today"><div class="pad" style="display:flex;flex-direction:column;gap:16px">';
+    h += '<h2>Heute</h2><div class="counts"><div class="count"><b>' + c.due + '</b><span>zu wiederholen</span></div>';
+    h += '<div class="count"><b>' + c.fresh + '</b><span>neu</span></div></div>';
+    h += '<button class="btn-main" data-act="start"' + (done ? ' disabled' : '') + '>' + (done ? 'Heute erledigt' : 'Los geht’s') + '</button>';
+    h += '<p class="note">' + esc(msg) + '</p></div></section>';
+
+    h += '<section class="panel"><h2>Fortschritt</h2><div class="stats">';
+    h += '<div class="stat"><b>' + state.streak.count + '</b><span>Tage in Folge</span></div>';
+    h += '<div class="stat"><b>' + keys.length + '</b><span>Karten gesehen</span></div>';
+    h += '<div class="stat"><b>' + box[5] + '</b><span>im letzten Fach</span></div></div>';
+    h += '<div class="boxes" role="img" aria-label="Karten pro Fach: ' + [1, 2, 3, 4, 5].map(function (i) { return 'Fach ' + i + ': ' + box[i]; }).join(', ') + '">';
+    for (var i = 1; i <= 5; i++) {
+      h += '<div class="box"><span class="n">' + box[i] + '</span><div class="bar"><i style="height:' + Math.round(box[i] / max * 100) + '%"></i></div>';
+      h += '<span class="l"><b>Fach ' + i + '</b>' + INTERVAL_LABEL[i] + '</span></div>';
+    }
+    h += '</div></section>';
+
+    h += '<section class="panel"><h2>Einstellungen</h2>';
+    h += '<div class="field"><span>Abfragerichtung</span><div class="seg" role="radiogroup" aria-label="Abfragerichtung">';
+    [["fd", "FR → DE"], ["df", "DE → FR"], ["both", "Beides"]].forEach(function (o) {
+      h += '<button role="radio" aria-checked="' + (m === o[0]) + '" data-act="mode" data-v="' + o[0] + '">' + o[1] + '</button>';
+    });
+    h += '</div></div>';
+    h += '<div class="row"><span>Neue Karten pro Tag</span><div class="stepper"><button data-act="perday" data-v="-1" aria-label="Weniger">−</button><output aria-live="polite">' + state.settings.perDay + '</output><button data-act="perday" data-v="1" aria-label="Mehr">+</button></div></div>';
+    h += '<div class="field"><span>Themen</span><div class="chips">';
+    CATS.forEach(function (ct) {
+      var on = state.settings.cats.indexOf(ct[0]) >= 0;
+      h += '<button class="chip" aria-pressed="' + on + '" data-act="cat" data-v="' + ct[0] + '">' + esc(ct[1]) + '</button>';
+    });
+    h += '</div></div>';
+    if (m === "both") h += '<p class="note">Bei „Beides“ kommt die Rückrichtung DE → FR, sobald du eine Karte sicher kannst (ab Fach 3).</p>';
+    h += '</section>';
+
+    h += '<footer class="panel" style="gap:10px">';
+    var sy = { cloud: "Fortschritt gespeichert und auf allen Geräten verfügbar.", local: "Fortschritt nur in diesem Browser gespeichert.", error: "Speichern im Konto gerade nicht möglich. Der Stand bleibt in diesem Browser." }[ui.sync];
+    h += '<p class="sync">' + sy + '</p>';
+    if (ui.confirmReset) {
+      h += '<div class="row"><span class="danger">Gesamten Fortschritt löschen?</span><span style="display:flex;gap:16px"><button class="link danger" data-act="reset-yes">Ja, löschen</button><button class="link" data-act="reset-no">Abbrechen</button></span></div>';
+    } else {
+      h += '<div><button class="link" data-act="reset">Fortschritt zurücksetzen</button></div>';
+    }
+    h += '</footer>';
+    return h;
+  }
+
+  function sessionHTML() {
+    var key = session.queue[0];
+    var idx = +key.slice(1, -1), dir = key.slice(-1);
+    var card = DECK[idx];
+    var q = dir === "f" ? card[1] : card[2];
+    var a = dir === "f" ? card[2] : card[1];
+    var pct = Math.round(session.solved / session.total * 100);
+    var it = state.items[key];
+    var h = '<div class="sessionbar"><button class="link" data-act="quit">Beenden</button>';
+    h += '<div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div>';
+    h += '<span class="count-s">noch ' + session.queue.length + '</span></div>';
+    h += '<div class="sheet card' + (session.revealed ? ' done' : '') + '"' + (session.revealed ? '' : ' role="button" tabindex="0" data-act="flip" aria-label="Antwort anzeigen"') + '>';
+    h += '<div class="card-in" id="card-in"><div class="meta"><span>' + (dir === "f" ? "Französisch" : "Deutsch") + '</span><span>·</span><span>' + esc(CATNAME[card[0]]) + '</span>';
+    if (card[3] && dir === "f") h += '<span class="tag">' + esc(card[3]) + '</span>';
+    if (!it) h += '<span class="tag">neu</span>';
+    h += '</div><p class="word"' + (dir === "f" ? ' lang="fr"' : ' lang="de"') + '>' + esc(q) + '</p>';
+    if (session.revealed) {
+      h += '<p class="answer" aria-live="polite"' + (dir === "f" ? ' lang="de"' : ' lang="fr"') + '>' + esc(a);
+      h += '</p>';
+      if (card[3] && dir === "d") h += '<div class="meta"><span class="tag">' + esc(card[3]) + '</span><span>' + (card[3] === "fam." ? "umgangssprachlich" : "unregelmäßiges Verb") + '</span></div>';
+    } else {
+      h += '<p class="hint">Antippen oder Leertaste zeigt die Antwort.</p>';
+    }
+    h += '</div></div>';
+    if (session.revealed) {
+      var b = it ? it.b : 1;
+      var nGood = Math.min(5, b + 1), nEasy = Math.min(5, b + 2);
+      h += '<div class="grades">';
+      h += '<button class="grade again" data-act="grade" data-v="0">Nochmal<small>1 · gleich</small></button>';
+      h += '<button class="grade good" data-act="grade" data-v="1">Gewusst<small>2 · ' + INTERVAL_LABEL[nGood] + '</small></button>';
+      h += '<button class="grade easy" data-act="grade" data-v="2">Leicht<small>3 · ' + INTERVAL_LABEL[nEasy] + '</small></button>';
+      h += '</div>';
+    }
+    return h;
+  }
+
+  function doneHTML() {
+    var nd = nextDue();
+    var tot = session.right + session.wrong;
+    var pct = tot ? Math.round(session.right / tot * 100) : 0;
+    var h = '<header><h1>Runde geschafft</h1><p class="sub">Gut gemacht, bis morgen.</p></header>';
+    h += '<section class="sheet"><div class="pad" style="display:flex;flex-direction:column;gap:16px"><h2>Diese Runde</h2><div class="summary-nums">';
+    h += '<div class="count"><b>' + session.solved + '</b><span>Karten gelöst</span></div>';
+    h += '<div class="count"><b>' + pct + '%</b><span>auf Anhieb</span></div>';
+    h += '<div class="count"><b>' + state.streak.count + '</b><span>Tage in Folge</span></div></div>';
+    h += '<p class="note">' + (nd ? 'Die nächsten Karten sind in ' + plural(nd, 'Tag', 'Tagen') + ' fällig.' : 'Für heute ist nichts mehr fällig.') + '</p>';
+    h += '<button class="btn-main" data-act="home">Zur Übersicht</button></div></section>';
+    return h;
+  }
+
+  var app = document.getElementById("app");
+  function render() {
+    app.innerHTML = ui.view === "session" && session && session.queue.length ? sessionHTML()
+      : ui.view === "done" && session ? doneHTML() : homeHTML();
+    if (ui.view !== "session" && ui.view !== "done") ui.view = "home";
+  }
+
+  /* ---------- Eingaben ---------- */
+  app.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act"), v = el.getAttribute("data-v");
+    if (act === "start") startSession();
+    else if (act === "flip") { if (session && !session.revealed) { session.revealed = true; render(); } }
+    else if (act === "grade") grade(+v);
+    else if (act === "quit") { ui.view = "home"; session = null; render(); }
+    else if (act === "home") { ui.view = "home"; session = null; render(); }
+    else if (act === "mode") { state.settings.mode = v; persist(); render(); }
+    else if (act === "perday") {
+      state.settings.perDay = Math.max(5, Math.min(25, state.settings.perDay + (+v))); persist(); render();
+    } else if (act === "cat") {
+      var cs = state.settings.cats, i = cs.indexOf(v);
+      if (i >= 0) { if (cs.length > 1) cs.splice(i, 1); } else cs.push(v);
+      persist(); render();
+    } else if (act === "reset") { ui.confirmReset = true; render(); }
+    else if (act === "reset-no") { ui.confirmReset = false; render(); }
+    else if (act === "reset-yes") {
+      var keepSettings = state.settings;
+      state = fresh(); state.settings = keepSettings;
+      ui.confirmReset = false; persist(); render();
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (ui.view !== "session" || !session || e.metaKey || e.ctrlKey || e.altKey) return;
+    var onButton = e.target && e.target.tagName === "BUTTON";
+    if (!session.revealed && (e.key === " " || e.key === "Enter")) {
+      if (onButton) return;
+      e.preventDefault(); session.revealed = true; render();
+    } else if (session.revealed && "123".indexOf(e.key) >= 0 && e.key.length === 1) {
+      e.preventDefault(); grade(+e.key - 1);
+    }
+  });
+
+  render();
+
+  /* ---------- Konto-Speicher (db), falls verfügbar ---------- */
+  (async function () {
+    try {
+      if (!window.claude || !window.claude.use) return;
+      var db = await window.claude.use("db");
+      var user = await window.claude.use("user");
+      if (!db || !user) return;
+      var id = await user.id();
+      if (!id) return;
+      ref = db.doc("data/users/" + id + "/progress");
+      var snap = await ref.get();
+      if (snap.exists) {
+        var remote = normalize(JSON.parse(JSON.stringify(snap.data())));
+        if (remote.updated > state.updated) {
+          state = remote;
+          try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {}
+        } else if (remote.updated < state.updated) {
+          flush();
+        }
+      } else if (state.updated > 0) {
+        flush();
+      }
+      ui.sync = "cloud";
+      if (ui.view === "home") render();
+    } catch (e) {
+      ref = null; ui.sync = "local";
+      if (ui.view === "home") render();
+    }
+  })();
+})();
+</script>
+
+</body></html>
